@@ -35,8 +35,15 @@ def createGraph(coords):
                 continue
             if n2.index in n1.edges: # already connected
                 continue
+
             diagonal = abs(n1.x - n2.x) == 1 and abs(n1.y - n2.y) == 1
             if diagonal:
+                if len(n1.edges) == 1:
+                    # here we check if existing edge is in the same direction as the new diagonal one, if so skip
+                    n = nodes[n1.edges[0]]
+                    sameDirection = abs(n2.x - n.x) + abs(n2.y - n.y) == 1
+                    if sameDirection:
+                        continue
                 n1.edges.append(n2.index)
                 n2.edges.append(n1.index)
 
@@ -49,8 +56,12 @@ def findStartingIndex(nodes:list[Node]):
     for node in nodes[1:]:
         first = nodes[firstIndex]
 
+
         if node.traversed: # node already traversed, cant be start
             continue
+
+        if first.traversed: # auto win if existing node has been traversed
+            firstIndex = node.index
 
         if len(node.edges) > len(first.edges): # too many edges, looses
             continue
@@ -126,6 +137,9 @@ def allTraversed(nodes:list[Node]):
 
 def traverseGraph(nodes:list[Node]):
     segments = []
+    if len(nodes) == 0:
+        print("No Nodes")
+        return segments
     while True:
         print("Segment:",len(segments))
         start = findStartingIndex(nodes)
@@ -148,9 +162,11 @@ def traverseGraph(nodes:list[Node]):
 
 if __name__ == "__main__":
     # test = [[0,1],[0,2],[0,3],[1,0],[1,4],[2,0],[2,4],[3,1],[3,3]]
-    test = [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4]] # L
-    test = [[0,0],[0,1],[0,3],[0,4],[1,2],[2,0],[2,1],[2,3],[2,4]] # X
-    test = [[0,4],[1,1],[1,3]] # ;
+    # test = [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4]] # L
+    # test = [[0,0],[0,1],[0,3],[0,4],[1,2],[2,0],[2,1],[2,3],[2,4]] # X
+    # test = [[0,4],[1,1],[1,3]] # ;
+
+    test = [[0,1],[0,3],[1,1],[1,3],[2,1],[2,3]] # =
     graph = createGraph(test)
     #print(graph)
     segments = traverseGraph(graph)

@@ -1,19 +1,24 @@
 import os, shutil, json
 from ntpath import dirname
+from graph_traversal import createGraph, traverseGraph
 
 
 # TODO: flip characters
 
 charScaling = 3
+maxSegments = 3
 
 def finalFormatting(charHeight:str, charDataArray:str, charArray:str):
     x = \
-"""#define CHAR_HEIGHT""" + charHeight  + """
+"""#define CHAR_HEIGHT """ + charHeight  + """
+#define MAX_SEGMENTS """ + str(maxSegments)  + """
 
 typedef struct CharacterData{
-    uint8_t width;
-    uint16_t offset;
-    uint16_t length;
+    uint8_t width;                  // full width of the character
+    uint8_t length;                 // number of bytes for full char
+    uint8_t segments;               // number of segments
+    uint16_t offsets[MAX_SEGMENTS]; // offsets into characterArray for the start of each segment
+    uint16_t lengths[MAX_SEGMENTS]; // number of bytes for segment
 } CharacterData;
 
 const CharacterData characterDataArray[] PROGMEM = {
@@ -42,47 +47,84 @@ def prepDirectories():
         shutil.rmtree(processedDir)
     os.mkdir(processedDir)
 
-def processFile(j:dict):
-    charHeight = str(charScaling*j["height"])
+def getCharDict(j:dict):
     charDict = {}
-    for g in j["glyphs"]:
-
+    for glyph in j["glyphs"]:
         l = []
-        for coord in g["coords"]:
-            l.append(str(charScaling*coord[0]))
-            l.append(str(charScaling*coord[1]))
 
-        charDict[g["name"]] = {
-            "width":g["width"], 
-            "coords": l
+        print("Traversing:", glyph['name'])
+        rawSegments = traverseGraph(createGraph(glyph['coords']))
+        segments = []
+        for rawSegment in rawSegments:
+            s = []
+            for index in rawSegment:
+                coord = glyph["coords"][index]
+                s.append(charScaling*coord[0])
+                s.append(charScaling*coord[1])
+            segments.append(s)
+
+        charDict[glyph['name']] = {
+            "width":glyph["width"], 
+            "segments": segments
         }
+    return charDict
 
-    # interate over all first page ascii characters
+def processChars(charDict:dict):
     charDataArray = []
     charArray = []
+
     offset = 0
+    # interate over all first page ascii characters
     for i in range(0,128):
         c = chr(i)
-        length = 0
-        width = 0
-        label = ""
-        charArrayStr = ""
+
+        # label creation
         if c in charDict:
-            length = len(charDict[c]["coords"])
-            width = charScaling*charDict[c]["width"]
-            #charArray.extend(charDict[c]["coords"])
-            charArrayStr = ', '.join(charDict[c]['coords'])
             x = c if c != '\\' else 'backslash'
             label = f" // {x}"
-
+        else:
+            label = f""
         if i != 127:
             label = f",{label}"
 
-        charDataArray.append(f"    {{ {width}, {offset}, {length} }}{label}")
-        if charArrayStr:
-            charArray.append(f"    {charArrayStr}{label} ")
-        offset += length
+        # actual processing
+        if c in charDict:
+            cd = charDict[c]
+            width = cd["width"]
+            length = 0
+            lengths = []
+            offsets = []
+            for i in range(maxSegments):
+                l = 0 if i >= len(cd["segments"]) else len(cd["segments"][i])
+                length += l
+                o = offset
+                offset += l
+                lengths.append(str(l))
+                offsets.append(str(o))
 
+            
+            charDataArray.append(f"    {{ {width}, {length}, {len(cd['segments'])}, {{{', '.join(offsets)}}}, {{{', '.join(lengths)}}} }}{label}")
+
+            points = [] # flattened segments
+            for s in cd["segments"]:
+                points.extend([str(x) for x in s])
+            if len(points) > 0:
+                charArrayStr = ', '.join(points)
+                charArray.append(f"    {charArrayStr}{label} ")
+
+        else: # char not in charDict
+            charDataArray.append(f"    {{ 0, 0, 0, {{{offset}, {offset}, {offset}}}, {{0, 0, 0}} }}{label}")
+
+    return charDataArray, charArray
+
+def resetList(l):
+    for i in range(len(l)):
+        l[i] = 0
+
+def processFile(j:dict):
+    charHeight = str(charScaling*j["height"])
+    charDict = getCharDict(j)
+    charDataArray, charArray = processChars(charDict)
     return finalFormatting(charHeight ,"\n".join(charDataArray), "\n".join(charArray))
 
 

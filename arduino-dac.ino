@@ -3,6 +3,19 @@
 #include <pins_arduino.h>
 #include "fonts/processed/Sigi-5px-Condensed-Regular.h"
 
+#define DELAY_CLOCK_1 __asm( "nop" )
+#define DELAY_CLOCK_2 DELAY_CLOCK_1; DELAY_CLOCK_1
+#define DELAY_CLOCK_3 DELAY_CLOCK_2; DELAY_CLOCK_1
+#define DELAY_CLOCK_4 DELAY_CLOCK_3; DELAY_CLOCK_1
+#define DELAY_CLOCK_5 DELAY_CLOCK_4; DELAY_CLOCK_1
+#define DELAY_CLOCK_6 DELAY_CLOCK_5; DELAY_CLOCK_1
+#define DELAY_CLOCK_7 DELAY_CLOCK_6; DELAY_CLOCK_1
+#define DELAY_CLOCK_8 DELAY_CLOCK_7; DELAY_CLOCK_1
+#define DELAY_CLOCK_9 DELAY_CLOCK_8; DELAY_CLOCK_1
+#define DELAY_CLOCK_10 DELAY_CLOCK_9; DELAY_CLOCK_1
+#define delay_clock(x) DELAY_CLOCK_##x
+
+
 /*
 #define dac_write(x) \
     PORTD = (B00111111 & (x)) << 2 ; \
@@ -56,9 +69,9 @@ uint8_t char_h[] = {
 };
 
 
-void draw_char(uint8_t x, uint8_t y, uint8_t *c, size_t len){
-    mov(c[0] + x, c[0] + y);
-    delayMicroseconds(10);
+void draw_segment(uint8_t x, uint8_t y, uint8_t *c, size_t len){
+    //mov(c[0] + x, c[0] + y);
+    //delayMicroseconds(2);
 
     size_t points = len/2;
 
@@ -67,20 +80,19 @@ void draw_char(uint8_t x, uint8_t y, uint8_t *c, size_t len){
 
         for(i = 0; i < points; i++){
             mov(c[2*i] + x,c[2*i+1] + y);
-            delayMicroseconds(2);
+            delay_clock(10);
         }
 
         for(i = points-1; i >=0 ; i--){
             mov(c[2*i] + x,c[2*i+1] + y);
-            delayMicroseconds(2);
+            delay_clock(10);
         }
     }
 
     for(i = 0; i < points; i++){
         mov(c[2*i] + x,c[2*i+1] + y);
-        delayMicroseconds(2);
+        delay_clock(10);
     }
-    delayMicroseconds(2);
 }
 
 
@@ -89,10 +101,13 @@ void write_char(uint8_t x, uint8_t y, char c){
     memcpy_P(&data, &characterDataArray[c], sizeof(CharacterData));
 
     uint8_t coords[data.length];
-    memcpy_P(coords, &characterArray[data.offset], data.length);
+    memcpy_P(coords, &characterArray[data.offsets[0]], data.length);
 
-    draw_char(x, y, coords, data.length);
+    for(int i = 0; i < data.segments; i++){
+        draw_segment(x, y, coords + (data.offsets[i] - data.offsets[0]), data.lengths[i]);
+    }
 }
+
 
 
 
@@ -101,8 +116,9 @@ void write_char(uint8_t x, uint8_t y, char c){
 // #define disable() DDRC |= B10000000; PORTC &= B10000000
 
 void setup(){
+    noInterrupts();
     DDRB = DDRB | B11111111;
-    DDRD = DDRD | B11111100;
+    DDRD = DDRD | B11111111;
 }
 
 /*
@@ -120,10 +136,13 @@ void sawtooth(){
         // dac_write(i);
         PORTD=i;
         PORTB=i;
-        delayMicroseconds(1);
+        //delayMicroseconds(1);
+        delay_clock(5);
+        //delayClocks(2);
         //delay(1);
     }
 
+    /*
     for(uint8_t i = 255; i > 0; i--){
         //dac_write(sini(i));
         // dac_write(i);
@@ -132,6 +151,7 @@ void sawtooth(){
         delayMicroseconds(1);
         //delay(1);
     }
+    */
 }
 void test(){
     mov(110,110);
@@ -144,13 +164,21 @@ void test(){
 }
 
 void loop(){
-    // sawtooth();
+
+    for(int i = 0; i < 50; i++){
+        int x = i%10;
+        int y = i/10;
+        write_char((20*x+10), (40*y+10), i+60);
+    }
+
+    //sawtooth();
     //draw_char(80, 100, char_h, sizeof(char_h));
     //draw_char(140, 100, char_h, sizeof(char_h));
     //draw_char(200, 100, char_h, sizeof(char_h));
     // test();
-    write_char(80, 100, 'H');
-    write_char(140, 100, 'H');
-    write_char(200, 100, 'H');
+    //write_char(80, 100, 'A');
+
+    //write_char(10, 10, 'B');
+    //write_char(200, 100, 'C');
     //
 }
