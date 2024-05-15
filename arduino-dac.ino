@@ -96,7 +96,8 @@ void draw_segment(uint8_t x, uint8_t y, uint8_t *c, size_t len){
 }
 
 
-void write_char(uint8_t x, uint8_t y, char c){
+// returns width
+uint16_t write_char(uint8_t x, uint8_t y, char c){
     CharacterData data;
     memcpy_P(&data, &characterDataArray[c], sizeof(CharacterData));
 
@@ -106,6 +107,7 @@ void write_char(uint8_t x, uint8_t y, char c){
     for(int i = 0; i < data.segments; i++){
         draw_segment(x, y, coords + (data.offsets[i] - data.offsets[0]), data.lengths[i]);
     }
+    return data.width;
 }
 
 
@@ -164,11 +166,14 @@ void test(){
 }
 
 void loop(){
-
-    for(int i = 0; i < 50; i++){
-        int x = i%10;
-        int y = i/10;
-        write_char((20*x+10), (40*y+10), i+60);
+    uint16_t x = 10;
+    uint16_t y = 10;
+    for(int i = 0; i < 63; i++){
+        x += write_char(x, y, i+33) + 1;
+        if(x > 240){
+            x = 10;
+            y += CHAR_HEIGHT + 1;
+        }
     }
 
     //sawtooth();

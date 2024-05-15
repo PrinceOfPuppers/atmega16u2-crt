@@ -64,7 +64,7 @@ def getCharDict(j:dict):
             segments.append(s)
 
         charDict[glyph['name']] = {
-            "width":glyph["width"], 
+            "width":charScaling*glyph["width"], 
             "segments": segments
         }
     return charDict
