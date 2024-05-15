@@ -93,11 +93,9 @@ def findStartingIndex(nodes:list[Node]):
 
     return firstIndex
 
-def _traverseGraph(nodes:list[Node], node:Node, traversalIndices:list, backtrackIndices:list):
+def _traverseGraph(nodes:list[Node], node:Node, traversalIndices:list, backtrackIndices:list, traversedEdges:set):
 
-    if node.traversed:
-        return
-
+    node.traversed = True
     # backtrack indices only get applied when traversing new nodes. not when exiting
     if len(backtrackIndices) > 0:
         traversalIndices.extend(backtrackIndices)
@@ -105,7 +103,6 @@ def _traverseGraph(nodes:list[Node], node:Node, traversalIndices:list, backtrack
 
 
     traversalIndices.append(node.index)
-    node.traversed = True
 
     if len(node.edges) == 0:
         return
@@ -121,9 +118,14 @@ def _traverseGraph(nodes:list[Node], node:Node, traversalIndices:list, backtrack
 
     for nodeIndex in node.edges:
         nextNode = nodes[nodeIndex]
-        if nextNode.traversed:
+
+        # check if edge has been traversed
+        hash = str(nodeIndex + node.index) + str(nodeIndex*node.index)
+        if hash in traversedEdges:
             continue
-        _traverseGraph(nodes, nextNode, traversalIndices, backtrackIndices)
+        traversedEdges.add(hash)
+
+        _traverseGraph(nodes, nextNode, traversalIndices, backtrackIndices, traversedEdges)
         backtrackIndices.append(node.index) #
 
 
@@ -146,7 +148,7 @@ def traverseGraph(nodes:list[Node]):
         print(f"Start Index: {start}")
         traversalIndices = []
         exitPath = []
-        _traverseGraph(nodes, nodes[start], traversalIndices, exitPath)
+        _traverseGraph(nodes, nodes[start], traversalIndices, exitPath, set())
         print("Traversal:",traversalIndices)
         print("Exit:", exitPath)
         segments.append(traversalIndices)
