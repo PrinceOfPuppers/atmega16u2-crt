@@ -8,12 +8,15 @@ from graph_traversal import createGraph, traverseGraph
 charScaling = 3
 maxSegments = 3
 
-def finalFormatting(charHeight:str, charDataArray:str, charArray:str):
+def finalFormatting(charHeight:str, maxWidth:str, charDataArray:str, charArray:str):
     x = \
 """#define CHAR_HEIGHT """ + charHeight  + """
+#define MAX_CHAR_WIDTH """ + maxWidth  + """
 #define MAX_SEGMENTS """ + str(maxSegments)  + """
 
 typedef struct CharacterData{
+    uint8_t first_x;                  // first x value in offset list (allows for less beam oversaturation on prev char)
+    uint8_t first_y;                  // first y ''
     uint8_t width;                  // full width of the character
     uint8_t length;                 // number of bytes for full char
     uint8_t segments;               // number of segments
@@ -49,6 +52,7 @@ def prepDirectories():
 
 def getCharDict(j:dict):
     charDict = {}
+    maxWidth = 0
     for glyph in j["glyphs"]:
         l = []
 
@@ -63,11 +67,14 @@ def getCharDict(j:dict):
                 s.append(charScaling*coord[1])
             segments.append(s)
 
+        width = charScaling*glyph["width"]
+        maxWidth = width if width > maxWidth else maxWidth
+
         charDict[glyph['name']] = {
-            "width":charScaling*glyph["width"], 
+            "width": width,
             "segments": segments
         }
-    return charDict
+    return charDict, maxWidth
 
 def processChars(charDict:dict):
     charDataArray = []
@@ -103,17 +110,24 @@ def processChars(charDict:dict):
                 offsets.append(str(o))
 
             
-            charDataArray.append(f"    {{ {width}, {length}, {len(cd['segments'])}, {{{', '.join(offsets)}}}, {{{', '.join(lengths)}}} }}{label}")
 
             points = [] # flattened segments
             for s in cd["segments"]:
                 points.extend([str(x) for x in s])
+
             if len(points) > 0:
                 charArrayStr = ', '.join(points)
                 charArray.append(f"    {charArrayStr}{label} ")
+                fx = points[0]
+                fy = points[1]
+            else:
+                fx = 0
+                fy = 0 
+
+            charDataArray.append(f"    {{ {fx}, {fy}, {width}, {length}, {len(cd['segments'])}, {{{', '.join(offsets)}}}, {{{', '.join(lengths)}}} }}{label}")
 
         else: # char not in charDict
-            charDataArray.append(f"    {{ 0, 0, 0, {{{offset}, {offset}, {offset}}}, {{0, 0, 0}} }}{label}")
+            charDataArray.append(f"    {{ 0, 0, 0, 0, 0, {{{offset}, {offset}, {offset}}}, {{0, 0, 0}} }}{label}")
 
     return charDataArray, charArray
 
@@ -123,9 +137,9 @@ def resetList(l):
 
 def processFile(j:dict):
     charHeight = str(charScaling*j["height"])
-    charDict = getCharDict(j)
+    charDict, maxWidth = getCharDict(j)
     charDataArray, charArray = processChars(charDict)
-    return finalFormatting(charHeight ,"\n".join(charDataArray), "\n".join(charArray))
+    return finalFormatting(charHeight, str(maxWidth),"\n".join(charDataArray), "\n".join(charArray))
 
 
 def processFiles():
