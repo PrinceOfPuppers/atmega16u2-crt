@@ -1,7 +1,8 @@
 #include <avr/pgmspace.h>
 #include <Arduino.h>
 #include <pins_arduino.h>
-#include "fonts/processed/Sigi-7px-Regular.h"
+// #include "fonts/processed/Sigi-7px-Regular.h"
+#include "fonts/processed/pet.h"
 
 #define DELAY_CLOCK_1 __asm( "nop" )
 #define DELAY_CLOCK_2 DELAY_CLOCK_1; DELAY_CLOCK_1
@@ -21,7 +22,7 @@
 
 
 // number of there and backs
-#define DRAW_REPEATS 2
+#define DRAW_REPEATS 3
 
 
 
@@ -57,6 +58,10 @@ void draw_segment(uint8_t x, uint8_t y, uint8_t *c, size_t len){
 uint16_t write_char(uint8_t x, uint8_t y, char c){
     CharacterData data;
     memcpy_P(&data, &characterDataArray[c], sizeof(CharacterData));
+    if(data.length == 0){
+        return data.width;
+    }
+
     mov(x + data.first_x, y + data.first_y);
 
     uint8_t coords[data.length];
@@ -97,7 +102,36 @@ void test(){
 
 }
 
+void write(char *s, int len){
+    uint16_t x = 0;
+    uint16_t y = 0;
+    for(int i = 0; i < len; i++){
+
+        /*
+        if(s[i] == ' '){
+            x+= MAX_CHAR_WIDTH-1;
+        }else 
+        */
+        if(s[i] == '\n'){
+            x = 0;
+            y += CHAR_HEIGHT + 1;
+        }
+        else {
+            x += write_char(x, y, s[i]) + 1;
+        }
+
+        if(x + MAX_CHAR_WIDTH >= 255){
+            x = 0;
+            y += CHAR_HEIGHT + 1;
+        }
+    }
+}
+
 void loop(){
+    // char *s = "MR COCONUT\nWAS HERE";
+    char *s = " !\"#$%&\'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    write(s, strlen(s));
+    return;
     uint16_t x = 0;
     uint16_t y = 0;
     uint16_t i = 0;

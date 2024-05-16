@@ -1,11 +1,15 @@
 import os, shutil, json
 from ntpath import dirname
 from graph_traversal import createGraph, traverseGraph
+from parse_files import processJson, Character, jsonDir, processedDir, prepDirectories, yaffDir, processYaff
+from dataclasses import dataclass
+from typing import Union
+
 
 
 # TODO: flip characters
 
-charScaling = 3
+charScaling = 2
 maxSegments = 3
 
 def finalFormatting(charHeight:str, maxWidth:str, charDataArray:str, charArray:str):
@@ -38,45 +42,29 @@ charArray +\
     return x
 
 
-scriptDir = dirname(__file__)
-rawDir = f"{scriptDir}/raw"
-processedDir = f"{scriptDir}/processed"
 
-def prepDirectories():
-    if not os.path.exists(rawDir) or len(os.listdir(rawDir)) == 0:
-        raise Exception(f"No Raw Data To Process in {processedDir}")
-
-    if os.path.exists(processedDir):
-        shutil.rmtree(processedDir)
-    os.mkdir(processedDir)
-
-def getCharDict(j:dict):
-    charDict = {}
+def calculateSegments(font:dict):
     maxWidth = 0
-    for glyph in j["glyphs"]:
+    for c,cData in font.items():
         l = []
 
-        print("Traversing:", glyph['name'])
-        rawSegments = traverseGraph(createGraph(glyph['coords']))
+        print("Traversing:", c)
+        rawSegments = traverseGraph(createGraph(cData.coords))
         segments = []
         for rawSegment in rawSegments:
             s = []
             for index in rawSegment:
-                coord = glyph["coords"][index]
+                coord = cData.coords[index]
                 s.append(charScaling*coord[0])
                 s.append(charScaling*coord[1])
             segments.append(s)
 
-        width = charScaling*glyph["width"]
+        width = charScaling*cData.width
         maxWidth = width if width > maxWidth else maxWidth
+        cData.segments = segments
+    return maxWidth
 
-        charDict[glyph['name']] = {
-            "width": width,
-            "segments": segments
-        }
-    return charDict, maxWidth
-
-def processChars(charDict:dict):
+def processSegments(font:dict[str,Character]):
     charDataArray = []
     charArray = []
 
@@ -86,7 +74,7 @@ def processChars(charDict:dict):
         c = chr(i)
 
         # label creation
-        if c in charDict:
+        if c in font:
             x = c if c != '\\' else 'backslash'
             label = f" // {x}"
         else:
@@ -95,24 +83,24 @@ def processChars(charDict:dict):
             label = f",{label}"
 
         # actual processing
-        if c in charDict:
-            cd = charDict[c]
-            width = cd["width"]
+        if c in font:
+            cData = font[c]
+            assert cData.segments is not None
+            width = charScaling*cData.width
             length = 0
             lengths = []
             offsets = []
             for i in range(maxSegments):
-                l = 0 if i >= len(cd["segments"]) else len(cd["segments"][i])
+                l = 0 if i >= len(cData.segments) else len(cData.segments[i])
                 length += l
                 o = offset
                 offset += l
                 lengths.append(str(l))
                 offsets.append(str(o))
-
             
 
             points = [] # flattened segments
-            for s in cd["segments"]:
+            for s in cData.segments:
                 points.extend([str(x) for x in s])
 
             if len(points) > 0:
@@ -124,32 +112,33 @@ def processChars(charDict:dict):
                 fx = 0
                 fy = 0 
 
-            charDataArray.append(f"    {{ {fx}, {fy}, {width}, {length}, {len(cd['segments'])}, {{{', '.join(offsets)}}}, {{{', '.join(lengths)}}} }}{label}")
+            charDataArray.append(f"    {{ {fx}, {fy}, {width}, {length}, {len(cData.segments)}, {{{', '.join(offsets)}}}, {{{', '.join(lengths)}}} }}{label}")
 
         else: # char not in charDict
             charDataArray.append(f"    {{ 0, 0, 0, 0, 0, {{{offset}, {offset}, {offset}}}, {{0, 0, 0}} }}{label}")
 
     return charDataArray, charArray
 
-def resetList(l):
-    for i in range(len(l)):
-        l[i] = 0
 
-def processFile(j:dict):
-    charHeight = str(charScaling*j["height"])
-    charDict, maxWidth = getCharDict(j)
-    charDataArray, charArray = processChars(charDict)
-    return finalFormatting(charHeight, str(maxWidth),"\n".join(charDataArray), "\n".join(charArray))
-
-
-def processFiles():
-    dir = os.listdir(rawDir)
+def processFiles(dirName):
+    dir = os.listdir(dirName)
     for file in dir:
-        with open(f"{rawDir}/{file}", "r") as f:
-            j = json.load(f)
-            s = processFile(j)
+        
+        name, extension = file.split(".")
+        newFileName = name + ".h"
 
-        newFileName = file.split(".")[0] + ".h"
+        with open(f"{dirName}/{file}", "r") as f:
+            if extension == "json":
+                j = json.load(f)
+                font, charHeight = processJson(j)
+            elif extension == "yaff":
+                font, charHeight = processYaff(f)
+            else:
+                raise Exception(f"Unknown Extension: {extension}")
+            maxWidth = calculateSegments(font)
+            charDataArray, charArray = processSegments(font)
+            s = finalFormatting(str(charScaling*charHeight), str(maxWidth),"\n".join(charDataArray), "\n".join(charArray))
+
         with open(f"{processedDir}/{newFileName}", "+w") as f:
             f.write(s)
 
@@ -157,4 +146,4 @@ def processFiles():
 
 if __name__ == "__main__":
     prepDirectories()
-    processFiles()
+    processFiles(yaffDir)
