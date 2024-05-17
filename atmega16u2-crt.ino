@@ -29,15 +29,9 @@ void write_to_screen_buffer(char val){
     screen_write_head %= SCREEN_BUFFER_SIZE;
 }
 
-const char s[] = "this is a\nreally\nlong\nsilly\nstring\nabout\nnothing\nin\nparticular\n";
 void setup(){
-    memset(screen_buffer, 0, SCREEN_BUFFER_SIZE);
     RawHID.begin(rawhidData, sizeof(rawhidData));
     setup_drawing();
-
-    for(int i = 0; i < sizeof(s); i++){
-        write_to_screen_buffer(s[i]);
-    }
 }
 
 
@@ -63,7 +57,7 @@ void write_to_screen(){
             continue;
         }
 
-        if(x + MAX_CHAR_WIDTH >= 255){
+        if(x + MAX_CHAR_WIDTH > 255){
             continue;
         }
 
@@ -74,30 +68,13 @@ void write_to_screen(){
     interrupts();
 }
 
-void test(){
-    write_to_screen();
-    //write(s, len);
-}
-
-int index = 0;
-int counter = 0;
 void loop(){
-    if(counter%10 == 0){
-        write_to_screen_buffer(s[index%sizeof(s)]);
-            index+=1;
-    }
-    counter+=1;
-
-    test();
-    return;
-    /*
     int bytesAvailable = RawHID.available();
     while(bytesAvailable){
         write_to_screen_buffer(RawHID.read());
         bytesAvailable--;
     }
     write_to_screen();
-    */
 
     return;
 }
