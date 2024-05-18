@@ -2,6 +2,10 @@
 #define DRAWING_H_
 #include <stdint.h>
 
+// #include "Sigi-5px-Condensed-Regular.h"
+#include "fonts/processed/pet-extended.h"
+// #include "fonts/processed/Arial_10.h"
+
 #ifdef __cplusplus
  extern "C" {
 #endif

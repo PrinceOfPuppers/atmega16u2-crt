@@ -2,11 +2,9 @@
 
 #include <Arduino.h>
 #include <avr/pgmspace.h>
-// #include "fonts/processed/Sigi-7px-Regular.h"
-#include "fonts/processed/pet.h"
 
 // number of there and backs
-#define DRAW_REPEATS 3
+#define DRAW_REPEATS 2
 
 
 void setup_drawing(){
@@ -22,18 +20,18 @@ void draw_segment(uint8_t x, uint8_t y, uint8_t *c, size_t len){
 
         for(i = 0; i < points; i++){
             mov(c[2*i] + x,c[2*i+1] + y);
-            delay_clock(5);
+            delay_clock(2);
         }
 
         for(i = points-1; i >=0 ; i--){
             mov(c[2*i] + x,c[2*i+1] + y);
-            delay_clock(5);
+            delay_clock(2);
         }
     }
 
     for(i = 0; i < points-1; i++){
         mov(c[2*i] + x,c[2*i+1] + y);
-        delay_clock(5);
+        delay_clock(2);
     }
     mov(c[len - 2] + x,c[len - 1] + y);
 }

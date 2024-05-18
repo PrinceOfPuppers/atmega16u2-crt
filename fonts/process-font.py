@@ -9,12 +9,17 @@ from typing import Union
 
 # TODO: flip characters
 
-charScaling = 2
+charYScaling = 2
+charXScaling = 1
 maxSegments = 3
 
 def finalFormatting(charHeight:str, maxWidth:str, charDataArray:str, charArray:str):
     x = \
-"""#define CHAR_HEIGHT """ + charHeight  + """
+"""
+#ifndef AUTOGEN_FONT_H_
+#define AUTOGEN_FONT_H_
+#include <avr/pgmspace.h>
+#define CHAR_HEIGHT """ + charHeight  + """
 #define MAX_CHAR_WIDTH """ + maxWidth  + """
 #define MAX_SEGMENTS """ + str(maxSegments)  + """
 
@@ -38,7 +43,9 @@ const uint8_t characterArray[] PROGMEM = {
 """ + \
 charArray +\
 """
-};"""
+};
+#endif
+"""
     return x
 
 
@@ -55,11 +62,11 @@ def calculateSegments(font:dict):
             s = []
             for index in rawSegment:
                 coord = cData.coords[index]
-                s.append(charScaling*coord[0])
-                s.append(charScaling*coord[1])
+                s.append(charXScaling*coord[0])
+                s.append(charYScaling*coord[1])
             segments.append(s)
 
-        width = charScaling*cData.width
+        width = charXScaling*cData.width
         maxWidth = width if width > maxWidth else maxWidth
         cData.segments = segments
     return maxWidth
@@ -86,7 +93,7 @@ def processSegments(font:dict[str,Character]):
         if c in font:
             cData = font[c]
             assert cData.segments is not None
-            width = charScaling*cData.width
+            width = charXScaling*cData.width
             length = 0
             lengths = []
             offsets = []
@@ -137,7 +144,7 @@ def processFiles(dirName):
                 raise Exception(f"Unknown Extension: {extension}")
             maxWidth = calculateSegments(font)
             charDataArray, charArray = processSegments(font)
-            s = finalFormatting(str(charScaling*charHeight), str(maxWidth),"\n".join(charDataArray), "\n".join(charArray))
+            s = finalFormatting(str(charYScaling*charHeight), str(maxWidth),"\n".join(charDataArray), "\n".join(charArray))
 
         with open(f"{processedDir}/{newFileName}", "+w") as f:
             f.write(s)
@@ -147,3 +154,4 @@ def processFiles(dirName):
 if __name__ == "__main__":
     prepDirectories()
     processFiles(yaffDir)
+    processFiles(jsonDir)

@@ -30,7 +30,11 @@ def processJson(j:dict):
     font = {}
     height = j['height']
     for glyph in j["glyphs"]:
-        c = Character(ord(glyph["name"]), glyph["width"], glyph["coords"])
+        num = ord(glyph["name"])
+        # we dont care about control characters
+        if num < 32:
+            continue
+        c = Character(num, glyph["width"], glyph["coords"])
         font[glyph["name"]] = c
     return font, height
 
@@ -48,6 +52,10 @@ def processYaff(f:TextIOWrapper):
 
         # we only care about ascii
         if unicodeNumber > 255:
+            continue
+
+        # we dont care about control characters
+        if unicodeNumber < 32:
             continue
 
         # ignore duplicates
