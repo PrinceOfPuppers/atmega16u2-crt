@@ -12,7 +12,6 @@
 #define RAW_HID_BUFFER_SIZE 32
 uint8_t rawhidData[RAW_HID_BUFFER_SIZE];
 
-
 #define SCREEN_BUFFER_SIZE (128 + 32 + 16)
 uint8_t screen_buffer[SCREEN_BUFFER_SIZE];
 uint8_t screen_write_head = 0;
@@ -32,7 +31,7 @@ uint8_t find_line_len(){
 }
 
 // should be large enough to hold the largest escape sequence we care about, all others will just be filtered
-#define MAX_ESCAPE_SEQ 5
+#define MAX_ESCAPE_SEQ 3
 
 uint8_t num_newlines = 0;
 int escape = -1;
@@ -51,6 +50,9 @@ void process_escape_sequence(){
     // clear screen
     if(escape_buffer[0] == '[' && escape_buffer[1] == '2' && escape_buffer[2] == 'J' && escape_buffer[3] == '\0'){
         memset(screen_buffer, 0, SCREEN_BUFFER_SIZE);
+        screen_write_head = 0;
+        line_len = 0;
+        num_newlines = 0;
         return;
     }
 
