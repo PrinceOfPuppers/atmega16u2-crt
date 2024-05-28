@@ -2,3 +2,16 @@
 __pycache__/
 
 processed/
+images-uncompressed/
+
+# kicad
+schematic/*
+!schematic/*.kicad_sch
+
+# kicad
+schematic/*
+!schematic/*.kicad_pcb
+!schematic/*.kicad_pro
+!schematic/*.kicad_sch
+
+

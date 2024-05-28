@@ -10,7 +10,6 @@ class Node:
     y:int
 
 
-
 def createGraph(coords):
     nodes = [Node(i, False, list(), coord[0], coord[1]) for i, coord in enumerate(coords)]
 
@@ -140,17 +139,17 @@ def allTraversed(nodes:list[Node]):
 def traverseGraph(nodes:list[Node]):
     segments = []
     if len(nodes) == 0:
-        print("No Nodes")
+        #print("No Nodes")
         return segments
     while True:
-        print("Segment:",len(segments))
+        #print("Segment:",len(segments))
         start = findStartingIndex(nodes)
-        print(f"Start Index: {start}")
+        #print(f"Start Index: {start}")
         traversalIndices = []
         exitPath = []
         _traverseGraph(nodes, nodes[start], traversalIndices, exitPath, set())
-        print("Traversal:",traversalIndices)
-        print("Exit:", exitPath)
+        #print("Traversal:",traversalIndices)
+        #print("Exit:", exitPath)
         segments.append(traversalIndices)
 
         if allTraversed(nodes):
@@ -159,19 +158,4 @@ def traverseGraph(nodes:list[Node]):
         if len(segments) > 10:
             raise Exception("Too many segments")
     return segments
-
-
-
-if __name__ == "__main__":
-    # test = [[0,1],[0,2],[0,3],[1,0],[1,4],[2,0],[2,4],[3,1],[3,3]]
-    # test = [[0,0],[0,1],[0,2],[0,3],[0,4],[1,4],[2,4]] # L
-    # test = [[0,0],[0,1],[0,3],[0,4],[1,2],[2,0],[2,1],[2,3],[2,4]] # X
-    # test = [[0,4],[1,1],[1,3]] # ;
-
-    test = [[0,1],[0,3],[1,1],[1,3],[2,1],[2,3]] # =
-    graph = createGraph(test)
-    #print(graph)
-    segments = traverseGraph(graph)
-    print("Number of segments found: ", len(segments))
-    
 
